@@ -18,6 +18,9 @@ COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-interaction --prefer-dist --no-scripts
 
 COPY . .
+
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 RUN composer dump-autoload --optimize \
     && mkdir -p var/cache var/log \
     && chown -R www-data:www-data var

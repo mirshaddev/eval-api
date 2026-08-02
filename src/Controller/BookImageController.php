@@ -43,7 +43,8 @@ final class BookImageController extends AbstractController
         $violations = $validator->validate($image, new File(
             maxSize: '5M',
             mimeTypes: ['image/jpeg', 'image/png'],
-            mimeTypesMessage: 'Seules les images JPEG et PNG sont autorisées.',
+             maxSizeMessage: 'L’image ne doit pas dépasser 5 Mo.',
+             mimeTypesMessage: 'Seules les images JPEG et PNG sont autorisées.',
         ));
 
         if (count($violations) > 0) {
