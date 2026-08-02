@@ -1,5 +1,8 @@
 ###> IDEs ###
 .idea
+/.idea
+.DS_Store
+
 ###< IDEs ###
 
 ###> symfony/framework-bundle ###
@@ -11,6 +14,7 @@
 /public/files/
 /var/
 /vendor/
+/tmp/
 ###< symfony/framework-bundle ###
 
 ###> phpunit/phpunit ###

@@ -2,11 +2,16 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\OpenApi\Model;
+use App\Controller\BookImageController;
 use App\Repository\BookRepository;
+use ArrayObject;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -16,14 +21,46 @@ use Doctrine\ORM\Mapping as ORM;
         new Get(),
         new GetCollection(),
         new Post(),
+        new Patch(),
+        new Post(
+            uriTemplate: '/books/{id}/image',
+            controller: BookImageController::class,
+            deserialize: false,
+            write: false,
+            status: 202,
+            inputFormats: ['multipart' => ['multipart/form-data']],
+            openapi: new Model\Operation(
+                summary: 'Ajouter une image de couverture à un livre',
+                description: 'Formats autorisés : JPEG et PNG. Taille maximale : 5 Mo.',
+                requestBody: new Model\RequestBody(
+                    required: true,
+                    content: new ArrayObject([
+                        'multipart/form-data' => [
+                            'schema' => [
+                                'type' => 'object',
+                                'required' => ['image'],
+                                'properties' => [
+                                    'image' => [
+                                        'type' => 'string',
+                                        'format' => 'binary',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ]),
+                ),
+            ),
+        ),
     ]
 )]
 #[ORM\Entity(repositoryClass: BookRepository::class)]
 #[ORM\Table(name: 'app_book')]
+#[ORM\HasLifecycleCallbacks]
 class Book
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
+    #[ORM\GeneratedValue(strategy: 'SEQUENCE')]
+    #[ORM\SequenceGenerator(sequenceName: 'app_book_id_seq', allocationSize: 1)]
     #[ORM\Column]
     private int $id;
 
@@ -36,16 +73,17 @@ class Book
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $resume = null;
 
+    #[ApiProperty(writable: false)]
     #[ORM\Column]
     private DateTimeImmutable $createdAt;
 
+    #[ApiProperty(writable: false)]
     #[ORM\Column(nullable: true)]
     private ?DateTimeImmutable $updatedAt = null;
 
-    public function __construct()
-    {
-        $this->createdAt = new DateTimeImmutable();
-    }
+    #[ApiProperty(writable: false)]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $imageUrl = null;
 
     public function getId(): int
     {
@@ -93,11 +131,10 @@ class Book
         return $this->createdAt;
     }
 
-    public function setCreatedAt(DateTimeImmutable $createdAt): static
+    #[ORM\PrePersist]
+    public function initializeCreatedAt(): void
     {
-        $this->createdAt = $createdAt;
-
-        return $this;
+        $this->createdAt = new DateTimeImmutable();
     }
 
     public function getUpdatedAt(): ?DateTimeImmutable
@@ -105,9 +142,20 @@ class Book
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?DateTimeImmutable $updatedAt): static
+    #[ORM\PreUpdate]
+    public function updateTimestamp(): void
     {
-        $this->updatedAt = $updatedAt;
+        $this->updatedAt = new DateTimeImmutable();
+    }
+
+    public function getImageUrl(): ?string
+    {
+        return $this->imageUrl;
+    }
+
+    public function setImageUrl(?string $imageUrl): static
+    {
+        $this->imageUrl = $imageUrl;
 
         return $this;
     }

@@ -1,0 +1,52 @@
+services:
+  php:
+    build:
+      context: .
+    container_name: pdv-php
+    ports:
+      - "8000:80"
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: postgresql://app:app@database:5432/app?serverVersion=16&charset=utf8
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgres:16-alpine
+    container_name: pdv-database
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5433:5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+    command: php bin/console messenger:consume async -vv
+    restart: unless-stopped
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: postgresql://app:app@database:5432/app?serverVersion=16&charset=utf8
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  vendor:
+  database:
